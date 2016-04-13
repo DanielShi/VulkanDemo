@@ -507,8 +507,8 @@ bool VkContext::InitializeFrameBuffers()
 {
 	for( auto i = 0u; i < m_SwapChainImageCount ; ++i ) {
 		VkImageView attachment[2] = {
+			m_SwapBuffers[i].imageView,
 			m_DepthBuffer.imageView,
-			m_SwapBuffers[i].imageView
 		};
 		VkFramebufferCreateInfo _create_info = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		_create_info.renderPass						= m_RenderPass;
@@ -534,14 +534,14 @@ bool VkContext::InitializeRenderPass()
 	_attachments[0].initialLayout					= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	_attachments[0].finalLayout						= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	_attachments[0].format							= m_DepthBuffer.format;
-	_attachments[0].samples							= VK_SAMPLE_COUNT_1_BIT;
-	_attachments[0].loadOp							= VK_ATTACHMENT_LOAD_OP_CLEAR;
-	_attachments[0].storeOp							= VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	_attachments[0].stencilLoadOp					= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	_attachments[0].stencilStoreOp					= VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	_attachments[0].initialLayout					= VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	_attachments[0].finalLayout						= VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	_attachments[1].format							= m_DepthBuffer.format;
+	_attachments[1].samples							= VK_SAMPLE_COUNT_1_BIT;
+	_attachments[1].loadOp							= VK_ATTACHMENT_LOAD_OP_CLEAR;
+	_attachments[1].storeOp							= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	_attachments[1].stencilLoadOp					= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	_attachments[1].stencilStoreOp					= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	_attachments[1].initialLayout					= VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	_attachments[1].finalLayout						= VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference		_color_reference = {
 		0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -594,7 +594,7 @@ bool VkContext::InitializeDescriptorPool()
 
 bool VkContext::InitializeDescriptorLayout()
 {
-	VkDescriptorSetLayoutBinding _layout_bindings[2]; 
+	VkDescriptorSetLayoutBinding _layout_bindings[2] = {}; 
 	_layout_bindings[0].binding							= 0;
 	_layout_bindings[0].descriptorType					= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	_layout_bindings[0].descriptorCount					= 1;
@@ -615,9 +615,8 @@ bool VkContext::InitializeDescriptorLayout()
 	VK_RETURN_IF_FAILED(vkCreateDescriptorSetLayout(m_Device, &_descriptor_layout, nullptr, &m_DescriptorSetLayout));
 
 	VkPipelineLayoutCreateInfo _pipelineLayoutCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	_pipelineLayoutCreateInfo.pNext = NULL;
-	_pipelineLayoutCreateInfo.setLayoutCount = 1;
-	_pipelineLayoutCreateInfo.pSetLayouts = &m_DescriptorSetLayout;
+	_pipelineLayoutCreateInfo.setLayoutCount			= 1;
+	_pipelineLayoutCreateInfo.pSetLayouts				= &m_DescriptorSetLayout;
 
 	VK_RETURN_IF_FAILED(vkCreatePipelineLayout(m_Device, &_pipelineLayoutCreateInfo, nullptr, &m_PipelineLayout));
 	return true;
@@ -632,7 +631,7 @@ bool VkContext::InitializeDescriptorSet()
 
 	VK_RETURN_IF_FAILED(vkAllocateDescriptorSets(m_Device, &alloc_info, &m_DescriptorSet));
 
-	VkDescriptorImageInfo _tex_descs;
+	VkDescriptorImageInfo _tex_descs = {};
 	_tex_descs.sampler						= m_TextureObject.sampler;
 	_tex_descs.imageView					= m_TextureObject.imageView;
 	_tex_descs.imageLayout					= VK_IMAGE_LAYOUT_GENERAL;
@@ -919,8 +918,9 @@ bool VkContext::LoadMeshData()
 	mat4x4 view_matrix;
 	mat4x4 model_matrix;
 
+	float aspect = m_SurfaceExtent.width / float( m_SurfaceExtent.height);	
 	mat4x4_perspective(projection_matrix, (float)degreesToRadians(45.0f),
-		1.0f, 0.1f, 100.0f);
+		aspect, 0.1f, 100.0f);
 	mat4x4_look_at(view_matrix, eye, origin, up);
 	mat4x4_identity(model_matrix);
 
@@ -1156,8 +1156,6 @@ void VkContext::SetImageLayout( VkCommandBuffer _cmd, VkImageAspectFlags  _aspec
 	_image_memory_barrier.dstAccessMask						= 0;
 	_image_memory_barrier.oldLayout							= _old_layout;
 	_image_memory_barrier.newLayout							= _new_layout;
-	_image_memory_barrier.srcQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;
-	_image_memory_barrier.dstQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;
 	_image_memory_barrier.image								= _image;
 	_image_memory_barrier.subresourceRange.aspectMask		= _aspectMask;
 	_image_memory_barrier.subresourceRange.layerCount		= 1;
@@ -1204,19 +1202,16 @@ void VkContext::SetImageLayout( VkCommandBuffer _cmd, VkImageAspectFlags  _aspec
 	}
 
 	if (_new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-		_image_memory_barrier.dstAccessMask =
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		_image_memory_barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 	}
 
 	if (_new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
-		_image_memory_barrier.dstAccessMask =
-			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		_image_memory_barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	}
 
 	if (_new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
 		/* Make sure any Copy or CPU writes to image are flushed */
-		_image_memory_barrier.dstAccessMask =
-			VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+		_image_memory_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
 	}
 
 #endif
@@ -1328,7 +1323,13 @@ bool VkContext::BeginFrame()
 
 	VK_RETURN_IF_FAILED( vkAcquireNextImageKHR(m_Device, m_SwapChain, UINT64_MAX, m_AcquireImageSemaphore, VK_NULL_HANDLE, &m_CurrentSwapBuffer) );
 
-	BeginCommandBuffer(m_SwapBuffers[m_CurrentSwapBuffer].commandBuffer);
+	//BeginCommandBuffer(m_SwapBuffers[m_CurrentSwapBuffer].commandBuffer);
+
+	BeginCommandBuffer(m_InitBuffer);
+	SetImageLayout(m_InitBuffer, VK_IMAGE_ASPECT_COLOR_BIT,m_SwapBuffers[m_CurrentSwapBuffer].image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,(VkAccessFlagBits)0);
+	EndCommandBuffer(m_InitBuffer);
+	FlushInitCommand(m_InitBuffer);
+
 	
 	return true;
 }
@@ -1336,7 +1337,7 @@ bool VkContext::BeginFrame()
 bool VkContext::EndFrame()
 {
 
-	EndCommandBuffer(m_SwapBuffers[m_CurrentSwapBuffer].commandBuffer);
+	//EndCommandBuffer(m_SwapBuffers[m_CurrentSwapBuffer].commandBuffer);
 
 	VkPipelineStageFlags _pipeline_staget_flags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 
