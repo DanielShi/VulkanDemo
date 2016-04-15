@@ -77,6 +77,8 @@ bool VkContext::Initialize(HINSTANCE _hinstance, HWND _hwnd)
 	m_hinstance = _hinstance;
 	m_hwnd		= _hwnd;
 
+	if( !InitializeInstanceLayerAndExt() )
+		return false;
 	if( !InitializeInstance() )
 		return false;
 	if( !InitializeDebugLayer() )
@@ -89,11 +91,11 @@ bool VkContext::Initialize(HINSTANCE _hinstance, HWND _hwnd)
 		return false;
 	if( !InitializeCmdBuffers() )
 		return false;
-
 	if( !InitializeDescriptorPool())
 		return false;
-	// Initialize resources
-
+	if( !InitializeDescriptorAndPipelineLayout() )
+		return false;
+	//Initialize global resourc3
 	if ( BeginCommandBuffer(m_InitBuffer) ) {
 
 		if( !InitializeSwapBuffers() )
@@ -108,16 +110,17 @@ bool VkContext::Initialize(HINSTANCE _hinstance, HWND _hwnd)
 		return false;
 	}
 
+	if( !InitializeRenderPass() )
+		return false;
+
+	if( !InitializeFrameBuffers() )
+		return false;
+	//
+	// Initialize resources
 	if( !LoadMeshData() )
 		return false;
 
 	if( !loadShader() )
-		return false;
-
-	if( !InitializeDescriptorLayout() )
-		return false;
-
-	if( !InitializeRenderPass() )
 		return false;
 
 	if( !InitializePipeline())
@@ -126,8 +129,6 @@ bool VkContext::Initialize(HINSTANCE _hinstance, HWND _hwnd)
 	if( !InitializeDescriptorSet() )
 		return false;
 
-	if( !InitializeFrameBuffers() )
-		return false;
 	//draw something here
 	for (uint32_t i = 0; i < m_SwapChainImageCount; i++) {
 		if( !DebugDraw(m_SwapBuffers[i]) )
@@ -142,9 +143,6 @@ bool VkContext::Initialize(HINSTANCE _hinstance, HWND _hwnd)
 
 bool VkContext::InitializeInstance()
 {
-	if( !InitializeInstanceLayerAndExt() )
-		return false;
-
 	VkApplicationInfo _appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 
 	_appInfo.apiVersion						= VK_MAKE_VERSION(1,0,3);//VK_API_VERSION;
@@ -180,37 +178,10 @@ bool VkContext::InitializeDevice()
 		return false;
 
 
+	
 	//Get the queue family index
-	uint32_t _familyPropCount = 0;
-	uint32_t _queueCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(m_GPU, &_familyPropCount, nullptr);
-	if( _familyPropCount >0 ) {
-
-		//Check which queue supports preset
-		std::unique_ptr<VkBool32[]> _support_present ( new VkBool32[_familyPropCount]);
-		for ( auto i = 0u ; i < _familyPropCount; ++i )
-		{
-			VK_RETURN_IF_FAILED(vkGetPhysicalDeviceSurfaceSupportKHR(m_GPU, i, m_Surface, &_support_present[i]));
-		}
-		//Check which queue supports both preset and graphics
-		std::unique_ptr<VkQueueFamilyProperties[]> _properties ( new VkQueueFamilyProperties[_familyPropCount] );
-		vkGetPhysicalDeviceQueueFamilyProperties(m_GPU, &_familyPropCount, _properties.get());
-		for( auto i = 0u; i < _familyPropCount ; ++i ) {
-			if( _properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && _support_present[i] == VK_TRUE ) {
-				m_QueueFamilyIndex = i;
-				break;
-			}
-		}
-		if( m_QueueFamilyIndex == -1 )
-		{
-			assert( 0 && "failed to find propers queue family index!");
-			return false;
-		}
-
-		VkPhysicalDeviceProperties _physical_properties;
-		vkGetPhysicalDeviceProperties(m_GPU, &_physical_properties);
-		std::cout << "GPU 0 : [" << _physical_properties.deviceName <<"]"<< std::endl;
-	}
+	if( !InitializeQueueFamilyIndex() )
+		return false;
 	
 	//prepare queue create info
 	float _priorities_value[] = {1.0f};
@@ -234,6 +205,41 @@ bool VkContext::InitializeDevice()
 	//Get the momery properties
 	vkGetPhysicalDeviceMemoryProperties(m_GPU,&m_MemoryProperties);
 	return true; 
+}
+
+bool VkContext::InitializeQueueFamilyIndex()
+{
+	uint32_t _familyPropCount = 0;
+	uint32_t _queueCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(m_GPU, &_familyPropCount, nullptr);
+	if (_familyPropCount > 0) {
+
+		//Check which queue supports preset
+		std::unique_ptr<VkBool32[]> _support_present(new VkBool32[_familyPropCount]);
+		for (auto i = 0u; i < _familyPropCount; ++i)
+		{
+			VK_RETURN_IF_FAILED(vkGetPhysicalDeviceSurfaceSupportKHR(m_GPU, i, m_Surface, &_support_present[i]));
+		}
+		//Check which queue supports both preset and graphics
+		std::unique_ptr<VkQueueFamilyProperties[]> _properties(new VkQueueFamilyProperties[_familyPropCount]);
+		vkGetPhysicalDeviceQueueFamilyProperties(m_GPU, &_familyPropCount, _properties.get());
+		for (auto i = 0u; i < _familyPropCount; ++i) {
+			if (_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && _support_present[i] == VK_TRUE) {
+				m_QueueFamilyIndex = i;
+				break;
+			}
+		}
+		if (m_QueueFamilyIndex == -1)
+		{
+			assert(0 && "failed to find propers queue family index!");
+			return false;
+		}
+
+		VkPhysicalDeviceProperties _physical_properties;
+		vkGetPhysicalDeviceProperties(m_GPU, &_physical_properties);
+		std::cout << "GPU 0 : [" << _physical_properties.deviceName << "]" << std::endl;
+	}
+	return true;
 }
 
 bool VkContext::InitializeDeviceLayerAndExt()
@@ -267,10 +273,8 @@ bool VkContext::InitializeDebugLayer()
 {
 	assert( m_VkInstance );
 	PFN_vkCreateDebugReportCallbackEXT	_create_debug_callback	= (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(m_VkInstance, "vkCreateDebugReportCallbackEXT" );
-	PFN_vkDestroyDebugReportCallbackEXT _destroy_debug_callback = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(m_VkInstance, "vkDestroyDebugReportCallbackEXT" );
-	assert(_create_debug_callback&&_destroy_debug_callback);
+	assert(_create_debug_callback);
 
-	VkDebugReportCallbackEXT _debug_report_call_back;
 	VkDebugReportCallbackCreateInfoEXT _createInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT };
 	_createInfo.pNext		= nullptr;
 	_createInfo.pUserData	= nullptr;
@@ -278,7 +282,14 @@ bool VkContext::InitializeDebugLayer()
 								| VK_DEBUG_REPORT_DEBUG_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT ;
 	_createInfo.pfnCallback = &DebugCallback;
 
-	VK_RETURN_IF_FAILED(_create_debug_callback(m_VkInstance, &_createInfo, nullptr, &_debug_report_call_back));
+	VK_RETURN_IF_FAILED(_create_debug_callback(m_VkInstance, &_createInfo, nullptr, &m_DebugReportCallback));
+	return true;
+}
+
+bool VkContext::DestroyDebugLayer()
+{
+	PFN_vkDestroyDebugReportCallbackEXT _destroy_debug_callback = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(m_VkInstance, "vkDestroyDebugReportCallbackEXT" );
+	_destroy_debug_callback(m_VkInstance,m_DebugReportCallback,nullptr);
 	return true;
 }
 
@@ -592,7 +603,7 @@ bool VkContext::InitializeDescriptorPool()
 	return true;
 }
 
-bool VkContext::InitializeDescriptorLayout()
+bool VkContext::InitializeDescriptorAndPipelineLayout()
 {
 	VkDescriptorSetLayoutBinding _layout_bindings[2] = {}; 
 	_layout_bindings[0].binding							= 0;
@@ -1247,6 +1258,9 @@ bool VkContext::InitializeInstanceLayerAndExt()
 
 void VkContext::Destroy()
 {
+	//destroy pipeline
+	vkDestroyPipeline(m_Device,m_Pipeline,nullptr);
+	vkDestroyPipelineCache(m_Device,m_PipelineCache,nullptr);
 	//destroy descriptor set layout
 	vkDestroyDescriptorSetLayout(m_Device,m_DescriptorSetLayout, nullptr);
 	vkDestroyPipelineLayout(m_Device,m_PipelineLayout, nullptr);
@@ -1262,6 +1276,10 @@ void VkContext::Destroy()
 	vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
 	//destroy descriptor pool
 	vkDestroyDescriptorPool(m_Device, m_DescriptorPool,nullptr);
+	//destroy framebuffer
+	for( auto i = 0u ; i < m_SwapChainImageCount; ++i) {
+		vkDestroyFramebuffer(m_Device,m_SwapBuffers[i].frameBuffer,nullptr);
+	}
 	//destroy depth buffer
 	vkDestroyImageView(m_Device,m_DepthBuffer.imageView,nullptr);
 	vkDestroyImage(m_Device,m_DepthBuffer.image,nullptr);
@@ -1282,12 +1300,15 @@ void VkContext::Destroy()
 	m_SwapBuffers.clear();
 	vkDestroyCommandPool(m_Device,m_CommandPool,nullptr);
 	m_CommandPool = VK_NULL_HANDLE;
-	vkDestroySurfaceKHR(m_VkInstance, m_Surface, nullptr);
-	m_Surface = VK_NULL_HANDLE;
 	vkDestroySwapchainKHR(m_Device, m_SwapChain,nullptr);
 	m_SwapChain = VK_NULL_HANDLE;
+	vkDestroySurfaceKHR(m_VkInstance, m_Surface, nullptr);
+	m_Surface = VK_NULL_HANDLE;
 	vkDestroyDevice(m_Device,nullptr);
 	m_Device = nullptr;
+	//remove debug callback
+	DestroyDebugLayer();
+	//destroy instance
 	vkDestroyInstance(m_VkInstance, nullptr);
 	m_VkInstance = nullptr;
 
@@ -1308,9 +1329,6 @@ void VkContext::Run()
 {
 	if( BeginFrame() )
 	{
-		//Draw something here
-
-		//
 		EndFrame();
 		Present();
 	}
@@ -1378,8 +1396,10 @@ bool VkContext::DebugDraw(VKSwapBuffer& _swapBuffer)
 	cmd_buf_info.pInheritanceInfo = &cmd_buf_hinfo;
 
 	VkClearValue clear_values[2];
-	float clear_color[4] = { 0.2f, 0.2f, 0.2f, 0.2f };
-	memcpy( clear_values[0].color.float32 , clear_color, sizeof(clear_color));
+	clear_values[0].color.float32[0] = 0.2f;
+	clear_values[0].color.float32[1] = 0.2f;
+	clear_values[0].color.float32[2] = 0.2f;
+	clear_values[0].color.float32[3] = 0.2f;
 	clear_values[1].depthStencil = { 1.0f, 0 }; 
 
 	VkRenderPassBeginInfo rp_begin = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };

@@ -26,6 +26,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	if( ::AllocConsole() ) {
 		FILE* _file;
 		freopen_s(&_file, "CONOUT$", "w", stdout );
+		//freopen_s(&_file, "log.txt", "w", stdout );
 	}
 
 	UNREFERENCED_PARAMETER(hPrevInstance);
@@ -57,7 +58,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	bool ShouldQuit = false;
 	while (!ShouldQuit)
 	{
-		if( PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE ) ) {
+		if( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE ) ) {
 
 			if( msg.message == WM_QUIT ) {
 				ShouldQuit = true;
@@ -68,11 +69,12 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 				DispatchMessage(&msg);
 			//}
 			}
-		}
-		else {
+		} else 
 			VkContext::GetInstance()->Run();
-		}
 	}
+
+	VkContext::GetInstance()->Destroy();
+
 	return (int) msg.wParam;
 }
 
@@ -171,9 +173,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// TODO: Add any drawing code here...
 		EndPaint(hWnd, &ps);
 		break;
-	case WM_DESTROY:
-		VkContext::GetInstance()->Destroy();
+	case WM_CLOSE:
 		PostQuitMessage(0);
+		break;
+	case WM_DESTROY:
+		//PostQuitMessage(0);
 		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);

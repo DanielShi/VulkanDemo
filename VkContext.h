@@ -49,6 +49,7 @@ private:
 
 	bool							InitializeInstance();
 	bool							InitializeDevice();
+	bool							InitializeQueueFamilyIndex();
 	bool							InitializeInstanceLayerAndExt();
 	bool							InitializeDeviceLayerAndExt();
 	bool							InitializeDebugLayer();
@@ -61,10 +62,11 @@ private:
 	bool							InitializeFrameBuffers();
 	bool							InitializeRenderPass();
 	bool							InitializeDescriptorPool();
-	bool							InitializeDescriptorLayout();
+	bool							InitializeDescriptorAndPipelineLayout();
 	bool							InitializeDescriptorSet();
 	bool							InitializePipeline();
 
+	bool							DestroyDebugLayer();
 	bool							LoadTextures();
 	bool							LoadMeshData();
 	bool							loadShader();
@@ -117,7 +119,7 @@ private:
 	VkShaderModule					m_PixelShaderModule;
 	VkPipelineCache					m_PipelineCache;
 	VkPipeline						m_Pipeline;
-
+	VkDebugReportCallbackEXT		m_DebugReportCallback;
 
 };
 
