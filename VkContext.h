@@ -1,7 +1,5 @@
 #pragma once
 #include "Predefined.h"
-#include <vulkan/vulkan.h>
-#include <vector>
 
 class VkContext
 {

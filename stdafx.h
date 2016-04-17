@@ -18,6 +18,7 @@
 #include <tchar.h>
 #include <assert.h>
 #include <iostream>
+#include <string>
 #include "Predefined.h"
 
 // TODO: reference additional headers your program requires here

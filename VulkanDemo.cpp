@@ -49,7 +49,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WIN32PROJECT1));
 
-	if( !VkContext::GetInstance()->Initialize(hInstance, hWnd) ) {
+	if( !Game::GetInstance()->Initialize(hInstance, hWnd) ) {
 		assert(0);
 		return 1;
 	}
@@ -70,10 +70,10 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 			//}
 			}
 		} else 
-			VkContext::GetInstance()->Run();
+			Game::GetInstance()->Run();
 	}
 
-	VkContext::GetInstance()->Destroy();
+	Game::GetInstance()->Destroy();
 
 	return (int) msg.wParam;
 }

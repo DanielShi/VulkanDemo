@@ -1,7 +1,5 @@
 #include "stdafx.h"
 #include "VkContext.h"
-#define _USE_MATH_DEFINES
-#include <math.h>
 #include "linmath.h"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback (
@@ -834,7 +832,7 @@ bool VkContext::LoadTextures()
     	VkImageCreateInfo image_create_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     	image_create_info.imageType					= VK_IMAGE_TYPE_2D;
     	image_create_info.format					= _tex_format;
-    	image_create_info.extent					= {_width, _height, 1};
+    	image_create_info.extent					= {static_cast<uint32_t>(_width), static_cast<uint32_t>(_height), 1};
     	image_create_info.mipLevels					= 1;
     	image_create_info.arrayLayers				= 1;
     	image_create_info.samples					= VK_SAMPLE_COUNT_1_BIT;
