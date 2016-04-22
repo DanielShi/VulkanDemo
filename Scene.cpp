@@ -2,9 +2,10 @@
 #include "Scene.h"
 #include "tiny_obj_loader.h"
 #include "Mesh.h"
+#include "ObjLoader.h"
 
 
-Scene::Scene( const char * _name ) : m_name( _name )
+Scene::Scene(const char * _name) : m_name(_name)
 , m_isLoaded(false)
 {
 }
@@ -19,6 +20,11 @@ bool Scene::Load()
 {
 	std::string _path = m_name + ".obj";
 
+	std::unique_ptr<ObjLoader> _loader(new ObjLoader());
+	if( !_loader->Load(_path) ) {
+		return false;
+	}
+	//
 	std::string							_errors;
 	if (!tinyobj::LoadObj(m_shapes, m_materials, _errors, _path.c_str())) {
 		assert(false && _errors.c_str());
