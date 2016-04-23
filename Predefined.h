@@ -23,9 +23,22 @@ struct Vector2 {
 	float u, v;
 };
 
+enum EVertexElementFlag {
+	POSITION				= 1,
+	NORMAL					= 1 << 1,
+	UV						= 1 << 2,
+	MASK					= POSITION | NORMAL | UV,
+};
 //Face with postion, normal, uv
-struct FacePNT {
-	int pos_index;
-	int nor_index;
-	int uvw_index;
+struct Vertex {
+	int						pos_index;
+	int						nor_index;
+	int						uvw_index;
+	unsigned char			flag;
+};
+
+struct Face {
+	static const int		MAX_VERTEX = 6;
+	Vertex					vertex[MAX_VERTEX];
+	int						vertex_num;
 };
