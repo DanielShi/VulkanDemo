@@ -1,11 +1,30 @@
 #pragma once
 #include "Predefined.h"
+#include "VertexFormat.h"
+#include "ResourceCache.h"
+
+class Mesh;
+
 class ObjLoader
 {
 public:
 	ObjLoader();
 	~ObjLoader();
 	
+	//Face with postion, normal, uv
+	struct Vertex {
+		int						pos_index;
+		int						nor_index;
+		int						uvw_index;
+		uint8_t					flag;
+	};
+
+	struct Face {
+		static const int		MAX_VERTEX = 6;
+		Vertex					vertex[MAX_VERTEX];
+		int						vertex_num;
+	};
+
 	struct Group {
 		std::string			name;
 		std::string			material;
@@ -48,9 +67,11 @@ public:
 		std::string			map_d;
 		std::string			map_bump;
 		unsigned int		flag;
+		std::string			name;
 	};
 
 	bool									Load(const std::string& _path);
+	void									CreateAll( MeshCache& _meshCache, MaterialCache& _materialCache, TextureCache& _textureCache );
 
 protected:
 	Vector3									ParseVector3(char* _line);
@@ -61,13 +82,36 @@ protected:
 	Face									ParseFace(char* _line);
 	Vertex									ParseVertex(char* _line);
 	bool									LoadMaterialLib(const std::string& _mtl_lib);
-	void									Trianglized( Face* _face );
 	
 	std::vector<Vector3>					m_positions;
 	std::vector<Vector3> 					m_normals;
 	std::vector<Vector2> 					m_uvs;
 	std::vector<Group>						m_groups;
-	std::vector<Mtl>						m_materials;
+	std::map<std::string, Mtl>				m_materials;
 	
 };
 
+class VertexCache {
+public:
+	VertexCache( const std::vector<Vector3>& _positions, const std::vector<Vector3>& _normals, const std::vector<Vector2>& _uvs, uint8_t _flags);
+	void									AddVertex(const ObjLoader::Vertex& _vertex);
+	int										GetVertexCount();
+	int										GetIndexCount();
+	const uint8_t*							GetVertexBuffer();
+	const uint16_t*							GetIndexBuffer();
+private:
+	struct VertexData {
+		Vector3			position;
+		Vector3			normal;
+		Vector2			uv;
+	};
+
+	const std::vector<Vector3>& 			m_positions;
+	const std::vector<Vector3>& 			m_normals;
+	const std::vector<Vector2>& 			m_uvs;
+	std::vector<VertexData>					m_vertexDataList;
+	std::vector<uint16_t>					m_indexBuffer;
+	std::unique_ptr<uint8_t[]>				m_vertexBuffer;
+	bool									m_isVertexBufferDirt;
+	VertexFormat							m_vertexFormat;
+};

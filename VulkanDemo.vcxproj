@@ -85,7 +85,9 @@
   <ItemGroup>
     <ClInclude Include="Game.h" />
     <ClInclude Include="linmath.h" />
+    <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="ResourceCache.h" />
     <ClInclude Include="ObjLoader.h" />
     <ClInclude Include="Predefined.h" />
     <ClInclude Include="Resource.h" />
@@ -94,15 +96,16 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="Texture2D.h" />
-    <ClInclude Include="TextureManager.h" />
-    <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="UniformBuffer.h" />
     <ClInclude Include="UniformBufferManager.h" />
+    <ClInclude Include="Buffer.h" />
+    <ClInclude Include="VertexFormat.h" />
     <ClInclude Include="VkContext.h" />
     <ClInclude Include="VulkanDemo.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="ObjLoader.cpp" />
     <ClCompile Include="Scene.cpp" />
@@ -112,10 +115,9 @@
     </ClCompile>
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="Texture2D.cpp" />
-    <ClCompile Include="TextureManager.cpp" />
-    <ClCompile Include="tiny_obj_loader.cpp" />
     <ClCompile Include="UniformBuffer.cpp" />
     <ClCompile Include="UniformBufferManager.cpp" />
+    <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="VkContext.cpp" />
     <ClCompile Include="VulkanDemo.cpp" />
   </ItemGroup>

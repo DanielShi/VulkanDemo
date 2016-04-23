@@ -167,7 +167,7 @@ bool VkContext::InitializeDevice()
 	uint32_t _gpuCount = 0;
 	VK_RETURN_IF_FAILED(vkEnumeratePhysicalDevices(m_VkInstance,&_gpuCount, nullptr));
 	if( _gpuCount > 0 ) {
-		std::unique_ptr<VkPhysicalDevice[]> _gpu ( new VkPhysicalDevice[_gpuCount] );
+		std::unique_ptr<VkPhysicalDevice[]> _gpu = std::make_unique<VkPhysicalDevice[]>(_gpuCount);
 		VK_RETURN_IF_FAILED(vkEnumeratePhysicalDevices(m_VkInstance, &_gpuCount, _gpu.get()));
 		m_GPU = _gpu[0];
 	}
@@ -213,13 +213,13 @@ bool VkContext::InitializeQueueFamilyIndex()
 	if (_familyPropCount > 0) {
 
 		//Check which queue supports preset
-		std::unique_ptr<VkBool32[]> _support_present(new VkBool32[_familyPropCount]);
+		std::unique_ptr<VkBool32[]> _support_present = std::make_unique<VkBool32[]>(_familyPropCount);
 		for (auto i = 0u; i < _familyPropCount; ++i)
 		{
 			VK_RETURN_IF_FAILED(vkGetPhysicalDeviceSurfaceSupportKHR(m_GPU, i, m_Surface, &_support_present[i]));
 		}
 		//Check which queue supports both preset and graphics
-		std::unique_ptr<VkQueueFamilyProperties[]> _properties(new VkQueueFamilyProperties[_familyPropCount]);
+		std::unique_ptr<VkQueueFamilyProperties[]> _properties = std::make_unique<VkQueueFamilyProperties[]>(_familyPropCount);
 		vkGetPhysicalDeviceQueueFamilyProperties(m_GPU, &_familyPropCount, _properties.get());
 		for (auto i = 0u; i < _familyPropCount; ++i) {
 			if (_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && _support_present[i] == VK_TRUE) {
@@ -246,7 +246,7 @@ bool VkContext::InitializeDeviceLayerAndExt()
 	//enumerate layer
 	uint32_t _count = 0;
 	VK_RETURN_IF_FAILED(vkEnumerateDeviceLayerProperties(m_GPU, &_count, nullptr));
-	std::unique_ptr<VkLayerProperties[]> _vkLayerProperties(new VkLayerProperties[_count]);
+	std::unique_ptr<VkLayerProperties[]> _vkLayerProperties = std::make_unique<VkLayerProperties[]>(_count);
 	VK_RETURN_IF_FAILED( vkEnumerateDeviceLayerProperties(m_GPU, &_count, _vkLayerProperties.get()) );
 
 	for( auto i = 0u ; i < _count ; ++i ) {
@@ -256,7 +256,7 @@ bool VkContext::InitializeDeviceLayerAndExt()
 
 	//enumerate extension
 	VK_RETURN_IF_FAILED(vkEnumerateDeviceExtensionProperties(m_GPU, nullptr, &_count, nullptr));
-	std::unique_ptr<VkExtensionProperties[]> _vkExtensionProperties(new VkExtensionProperties[_count]);
+	std::unique_ptr<VkExtensionProperties[]> _vkExtensionProperties = std::make_unique<VkExtensionProperties[]>(_count);
 	VK_RETURN_IF_FAILED(vkEnumerateDeviceExtensionProperties(m_GPU, nullptr, &_count, _vkExtensionProperties.get()));
 
 	for (auto i = 0u ; i < _count; ++i) {
@@ -308,7 +308,7 @@ bool VkContext::InitializeSwapChain()
 	uint32_t _format_count = 0;
 	VK_RETURN_IF_FAILED(vkGetPhysicalDeviceSurfaceFormatsKHR(m_GPU, m_Surface, &_format_count, nullptr));
 
-	std::unique_ptr<VkSurfaceFormatKHR[]> _surface_formats ( new VkSurfaceFormatKHR[_format_count]);
+	std::unique_ptr<VkSurfaceFormatKHR[]> _surface_formats = std::make_unique<VkSurfaceFormatKHR[]>(_format_count);
 
 	VK_RETURN_IF_FAILED(vkGetPhysicalDeviceSurfaceFormatsKHR(m_GPU, m_Surface, &_format_count, _surface_formats.get()));
 	
@@ -320,7 +320,7 @@ bool VkContext::InitializeSwapChain()
 	uint32_t _present_mode_count = 0;
 	VK_RETURN_IF_FAILED( vkGetPhysicalDeviceSurfacePresentModesKHR(m_GPU, m_Surface, &_present_mode_count, nullptr) );
 
-	std::unique_ptr<VkPresentModeKHR[]> _present_modes ( new VkPresentModeKHR[_present_mode_count]);
+	std::unique_ptr<VkPresentModeKHR[]> _present_modes = std::make_unique<VkPresentModeKHR[]>(_present_mode_count);
 	VK_RETURN_IF_FAILED( vkGetPhysicalDeviceSurfacePresentModesKHR(m_GPU, m_Surface, &_present_mode_count, _present_modes.get() ) );
 	// 1. Mailbox , less letency , less tearing
 	// 2. Immediate, fast but tearing
@@ -372,8 +372,8 @@ bool VkContext::InitializeSwapBuffers()
 	assert(m_SwapChainImageCount > 0);
 	if( m_SwapChainImageCount > 0 ) {
 		
-		std::unique_ptr<VkImage[]> _swap_images ( new VkImage[m_SwapChainImageCount] );
-		std::unique_ptr<VkImageView[]> _swap_image_views( new VkImageView[m_SwapChainImageCount]);
+		std::unique_ptr<VkImage[]> _swap_images = std::make_unique<VkImage[]>(m_SwapChainImageCount);
+		std::unique_ptr<VkImageView[]> _swap_image_views = std::make_unique<VkImageView[]>(m_SwapChainImageCount);
 		VK_RETURN_IF_FAILED(vkGetSwapchainImagesKHR(m_Device, m_SwapChain, &m_SwapChainImageCount, _swap_images.get()));
 		// create image views
 		for( auto i = 0u; i < m_SwapChainImageCount ; ++i ) {
@@ -1096,7 +1096,7 @@ bool VkContext::loadShader()
 
 		fseek(fp, 0L, SEEK_SET);
 
-		std::unique_ptr<uint8_t[]> shader_code(new uint8_t[size]);
+		std::unique_ptr<uint8_t[]> shader_code = std::make_unique<uint8_t[]>(size);
 		fread_s(shader_code.get(), size, 1, size, fp);
 
 		fclose(fp);
@@ -1236,7 +1236,7 @@ bool VkContext::InitializeInstanceLayerAndExt()
 	//enumerate layer
 	uint32_t _count = 0;
 	VK_RETURN_IF_FAILED(vkEnumerateInstanceLayerProperties(&_count,nullptr));
-	std::unique_ptr<VkLayerProperties[]> _vkLayerProperties(new VkLayerProperties[_count]);
+	std::unique_ptr<VkLayerProperties[]> _vkLayerProperties = std::make_unique<VkLayerProperties[]>(_count);
 	VK_RETURN_IF_FAILED(vkEnumerateInstanceLayerProperties(&_count, _vkLayerProperties.get()));
 	for( auto i = 0u ; i < _count ; ++i ) {
 		std::cout << _vkLayerProperties[i].layerName << " | " << _vkLayerProperties[i].description << std::endl;
@@ -1244,7 +1244,7 @@ bool VkContext::InitializeInstanceLayerAndExt()
 	}
 	//enumerate extension
 	VK_RETURN_IF_FAILED(vkEnumerateInstanceExtensionProperties(nullptr, &_count, nullptr));
-	std::unique_ptr<VkExtensionProperties[]> _vkExtensionProperties(new VkExtensionProperties[_count]);
+	std::unique_ptr<VkExtensionProperties[]> _vkExtensionProperties = std::make_unique<VkExtensionProperties[]>(_count);
 	VK_RETURN_IF_FAILED(vkEnumerateInstanceExtensionProperties(nullptr, &_count, _vkExtensionProperties.get()));
 	for (auto i = 0u ; i < _count; ++i) {
 		std::cout << _vkExtensionProperties[i].extensionName << std::endl;

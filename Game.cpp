@@ -55,6 +55,6 @@ void Game::Run()
 
 void Game::RegisterScene(const char* _sceneName)
 {
-	std::shared_ptr<Scene> _new_scene(new Scene(_sceneName));
+	std::shared_ptr<Scene> _new_scene = std::make_shared<Scene>(_sceneName);
 	m_scenes.push_back(_new_scene);
 }
